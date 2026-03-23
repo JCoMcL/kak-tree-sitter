@@ -2,9 +2,9 @@
 resolver = "2"
 
 members = [
-	"kak-tree-sitter",
-	"kak-tree-sitter-config",
-	"ktsctl",
+  "kak-tree-sitter",
+  "kak-tree-sitter-config",
+  "ktsctl",
 ]
 
 [workspace.package]
