@@ -610,7 +610,17 @@ pin = "f6878f62f74430cff188e7978d06c5ed143179e9"
 path = "runtime/queries/just"
 
 # kdl
-# TODO
+[grammar.kdl.source.git]
+url = "https://github.com/amaanq/tree-sitter-kdl"
+pin = "3ca569b9f9af43593c24f9e7a21f02f43a13bb88"
+
+[grammar.kdl]
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "kdl.so"]
+
+[language.kdl.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "18ca4809cad7a237ac3d42b4d19f493b6751b44f"
 
 # koka
 [grammar.koka.source.git]
