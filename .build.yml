@@ -36,21 +36,17 @@ tasks:
   # minimal version build
   - build-minimal-default: |
       rustup default nightly
-      export RUSTUP_TOOLCHAIN=1.86.0
       cd kak-tree-sitter
       cargo build -Z minimal-versions
   - build-minimal-all-features: |
       rustup default nightly
-      export RUSTUP_TOOLCHAIN=1.86.0
       cd kak-tree-sitter
       cargo build -Z minimal-versions --all-features --all-targets
   - test-minimal-default: |
       rustup default nightly
-      export RUSTUP_TOOLCHAIN=1.86.0
       cd kak-tree-sitter
       cargo test -Z minimal-versions
   - test-minimal-all-features: |
       rustup default nightly
-      export RUSTUP_TOOLCHAIN=1.86.0
       cd kak-tree-sitter
       cargo test -Z minimal-versions --all-features --all-targets
