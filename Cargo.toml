@@ -13,7 +13,7 @@ edition = "2024"
 homepage = "https://sr.ht/~hadronized/kak-tree-sitter/"
 keywords = ["tree-sitter", "kakoune"]
 readme = "README.md"
-rust-version = "1.86.0"
+rust-version = "1.88.0"
 
 [workspace.dependencies]
 clap = { version = "4.5", features = ["derive"] }
