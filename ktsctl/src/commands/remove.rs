@@ -213,15 +213,15 @@ fn prune_unpinned_grammar(
   for entry in grammar_dir.flatten() {
     match &grammar_config.source {
       Source::Local { path } => {
-        if entry.path() != *path {
-          if let Err(err) = fs::remove_file(entry.path()) {
-            errors.push(format!(
-              "cannot prune grammar for {lang} at {path}: {err}",
-              lang = lang.blue(),
-              path = entry.path().display(),
-              err = err.to_string().red(),
-            ));
-          }
+        if entry.path() != *path
+          && let Err(err) = fs::remove_file(entry.path())
+        {
+          errors.push(format!(
+            "cannot prune grammar for {lang} at {path}: {err}",
+            lang = lang.blue(),
+            path = entry.path().display(),
+            err = err.to_string().red(),
+          ));
         }
       }
 
@@ -233,15 +233,14 @@ fn prune_unpinned_grammar(
           .to_str()
           .unwrap()
           .starts_with(pin)
+          && let Err(err) = fs::remove_file(entry.path())
         {
-          if let Err(err) = fs::remove_file(entry.path()) {
-            errors.push(format!(
-              "cannot prune grammar for {lang} at {path}: {err}",
-              lang = lang.blue(),
-              path = entry.path().display(),
-              err = err.to_string().red(),
-            ));
-          }
+          errors.push(format!(
+            "cannot prune grammar for {lang} at {path}: {err}",
+            lang = lang.blue(),
+            path = entry.path().display(),
+            err = err.to_string().red(),
+          ));
         }
       }
     }
@@ -266,28 +265,28 @@ fn prune_unpinned_queries(
   for entry in queries_dir.flatten() {
     match &lang_config.queries.source {
       Some(Source::Local { path }) => {
-        if entry.path() != *path {
-          if let Err(err) = fs::remove_file(entry.path()) {
-            errors.push(format!(
-              "cannot prune queries for {lang} at {path}: {err}",
-              lang = lang.blue(),
-              path = entry.path().display(),
-              err = err.to_string().red(),
-            ));
-          }
+        if entry.path() != *path
+          && let Err(err) = fs::remove_file(entry.path())
+        {
+          errors.push(format!(
+            "cannot prune queries for {lang} at {path}: {err}",
+            lang = lang.blue(),
+            path = entry.path().display(),
+            err = err.to_string().red(),
+          ));
         }
       }
 
       Some(Source::Git { pin, .. }) => {
-        if entry.path().file_name().unwrap().to_str() != Some(pin) {
-          if let Err(err) = fs::remove_dir_all(entry.path()) {
-            errors.push(format!(
-              "cannot prune queries for {lang} at {path}: {err}",
-              lang = lang.blue(),
-              path = entry.path().display(),
-              err = err.to_string().red(),
-            ));
-          }
+        if entry.path().file_name().unwrap().to_str() != Some(pin)
+          && let Err(err) = fs::remove_dir_all(entry.path())
+        {
+          errors.push(format!(
+            "cannot prune queries for {lang} at {path}: {err}",
+            lang = lang.blue(),
+            path = entry.path().display(),
+            err = err.to_string().red(),
+          ));
         }
       }
 

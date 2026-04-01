@@ -154,15 +154,15 @@ fn persist_process(paths: &Paths, daemonize: bool) -> Result<(), OhNo> {
     log::debug!("removing previous socket file");
     let socket_path = paths.socket_path();
 
-    if let Ok(true) = socket_path.try_exists() {
-      if let Err(err) = std::fs::remove_file(&socket_path) {
-        return Err(OhNo::CannotStartDaemon {
-          err: format!(
-            "cannot remove previous socket file {path}: {err}",
-            path = socket_path.display()
-          ),
-        });
-      }
+    if let Ok(true) = socket_path.try_exists()
+      && let Err(err) = std::fs::remove_file(&socket_path)
+    {
+      return Err(OhNo::CannotStartDaemon {
+        err: format!(
+          "cannot remove previous socket file {path}: {err}",
+          path = socket_path.display()
+        ),
+      });
     }
   }
 

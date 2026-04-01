@@ -95,10 +95,10 @@ impl Drop for CommandSender {
     // this should cause the thread counterpart to exit
     self.sender = None;
 
-    if let Some(join_handle) = self.join_handle.take() {
-      if join_handle.join().is_err() {
-        log::error!("handler not properly closed");
-      }
+    if let Some(join_handle) = self.join_handle.take()
+      && join_handle.join().is_err()
+    {
+      log::error!("handler not properly closed");
     }
   }
 }

@@ -48,21 +48,21 @@ impl<'a> Process<'a> {
       err,
     })?;
 
-    if !exit_status.success() {
-      if let Some(mut stderr) = stderr {
-        let mut err = String::new();
-        stderr
-          .read_to_string(&mut err)
-          .map_err(|err| HellNo::ProcessRunError {
-            process: process.clone(),
-            err,
-          })?;
-
-        return Err(HellNo::ProcessExitedWithError {
+    if !exit_status.success()
+      && let Some(mut stderr) = stderr
+    {
+      let mut err = String::new();
+      stderr
+        .read_to_string(&mut err)
+        .map_err(|err| HellNo::ProcessRunError {
           process: process.clone(),
-          err: err.to_string(),
-        });
-      }
+          err,
+        })?;
+
+      return Err(HellNo::ProcessExitedWithError {
+        process: process.clone(),
+        err: err.to_string(),
+      });
     }
 
     Ok(())
