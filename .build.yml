@@ -3,6 +3,7 @@
 image: archlinux
 packages:
   - rustup
+  - jq
 sources:
   - https://git.sr.ht/~hadronized/kak-tree-sitter
 tasks:
@@ -35,18 +36,36 @@ tasks:
 
   # minimal version build
   - build-minimal-default: |
-      rustup default nightly
       cd kak-tree-sitter
-      cargo build -Z minimal-versions
+      cargo +nightly build -Z minimal-versions
   - build-minimal-all-features: |
-      rustup default nightly
       cd kak-tree-sitter
-      cargo build -Z minimal-versions --all-features --all-targets
+      cargo +nightly build -Z minimal-versions --all-features --all-targets
   - test-minimal-default: |
-      rustup default nightly
       cd kak-tree-sitter
-      cargo test -Z minimal-versions
+      cargo +nightly test -Z minimal-versions
   - test-minimal-all-features: |
-      rustup default nightly
       cd kak-tree-sitter
-      cargo test -Z minimal-versions --all-features --all-targets
+      cargo +nightly test -Z minimal-versions --all-features --all-targets
+
+  # MSRV build
+  - build-msrv-default: |
+      cd kak-tree-sitter
+      RUST_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].rust_version')
+      rustup toolchain install $RUST_VERSION
+      cargo +$RUST_VERSION build
+  - build-msrv-all-features: |
+      cd kak-tree-sitter
+      RUST_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].rust_version')
+      rustup toolchain install $RUST_VERSION
+      cargo +$RUST_VERSION build --all-features --all-targets
+  - test-msrv-default: |
+      cd kak-tree-sitter
+      RUST_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].rust_version')
+      rustup toolchain install $RUST_VERSION
+      cargo +$RUST_VERSION test
+  - test-msrv-all-features: |
+      cd kak-tree-sitter
+      RUST_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].rust_version')
+      rustup toolchain install $RUST_VERSION
+      cargo +$RUST_VERSION test --all-features --all-targets
