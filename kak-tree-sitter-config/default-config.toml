@@ -152,7 +152,7 @@ aliases = ["sh"]
 
 [grammar.bash.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-bash"
-pin = "f8fb3274f72a30896075585b32b0c54cad65c086"
+pin = "487734f87fd87118028a65a4599352fa99c9cde8"
 
 [grammar.bash]
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -160,7 +160,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "bash.so"]
 
 [language.bash.queries.source.git]
 url = "https://github.com/helix-editor/helix"
-pin = "7275b7f85014aad7e15d4987ec4f2249572eecfb"
+pin = "d546a799e579b0cf437bbc0695898e60e216fc27"
 
 # bass
 # TODO
