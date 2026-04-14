@@ -1,6 +1,6 @@
 [package]
 name = "kak-tree-sitter"
-version = "3.2.0"
+version = "3.2.1"
 license = "BSD-3-Clause"
 description = "Server between Kakoune and tree-sitter"
 repository = "https://sr.ht/~hadronized/kak-tree-sitter/"

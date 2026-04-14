@@ -47,6 +47,28 @@ This is the changelog of the **kak-tree-sitter** project, which is composed of t
 
 > For older versions of the changelogs, please refer to [CHANGELOG.old.md](./CHANGELOG.old.md)
 
+## kak-tree-sitter v3.2.1
+
+<details>
+  <summary><b>Commit set</b></summary>
+  <ul>
+    <li><a href="https://git.sr.ht/~hadronized/kak-tree-sitter/commit/afed73a">afed73a</a> Update Cargo.lock.</li>
+  <ul>
+</details>
+
+- Update `Cargo.lock`.
+
+## ktsctl v3.1.2
+
+<details>
+  <summary><b>Commit set</b></summary>
+  <ul>
+    <li><a href="https://git.sr.ht/~hadronized/kak-tree-sitter/commit/afed73a">afed73a</a> Update Cargo.lock.</li>
+  <ul>
+</details>
+
+- Update `Cargo.lock`.
+
 ## kak-tree-sitter-config v.4.2.0
 
 <details>

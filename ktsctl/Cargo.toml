@@ -1,6 +1,6 @@
 [package]
 name = "ktsctl"
-version = "3.1.1"
+version = "3.1.2"
 license = "BSD-3-Clause"
 description = "CLI controler of kak-tree-sitter"
 categories = ["text-editors"]
