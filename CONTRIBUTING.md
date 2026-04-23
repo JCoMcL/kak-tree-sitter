@@ -22,7 +22,7 @@ the time to read this document before starting.**
 
 ## Prerequisites
 
-Before contributing, some prerequisites **if plan on providing patches**:
+Before contributing, some prerequisites **if you plan on providing patches**:
 
 - You must have [git] installed, as this project uses it as VCS.
 - This project accepts contributions via _git patches_. A mail client that can
@@ -31,6 +31,11 @@ Before contributing, some prerequisites **if plan on providing patches**:
 - Not mandatory but highly recommended; you should have a GPG key hosted on a
   third-party location — for instance, [keys.openpgp.org] — and sign your
   emails with it. More on that in the the [Guidelines](#guidelines) section.
+
+### No LLM / AI
+
+Please do not contribute in any form LLM-generated content, should it be issues,
+feature request or patches. They will immediately be closed.
 
 ## Setup
 
