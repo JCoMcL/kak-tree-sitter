@@ -47,7 +47,7 @@ If you have a SourceHut account, feel free to open an issue on one of the [track
 If you do not own a SourceHut account, feel free to send an email in on the [discuss mailing list](https://lists.sr.ht/~hadronized/kak-tree-sitter-discuss).
 A contributor will create a ticket and send you a link you can subscribe your email to to follow progress.
 
-[Submit an issue through email](~hadronized/kak-tree-sitter-discuss@lists.sr.ht)
+[Submit an issue through email](mailto:wq~hadronized/kak-tree-sitter-discuss@lists.sr.ht)
 
 ### Contributing patches
 
