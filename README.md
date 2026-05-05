@@ -3,7 +3,7 @@
 <!--toc:start-->
 - [kak-tree-sitter](#kak-tree-sitter)
   - [Features](#features)
-  - [User manual](#user-manual)
+  - [Wiki](#wiki)
   - [Contributing](#contributing)
   - [Chat](#chat)
   - [Credits](#credits)
@@ -40,9 +40,18 @@ runtime resources.
 
 ## Contributing
 
-Whether you want to report or fix a bug, make a feature request, help improving something or add support for
-a new language by changing the default configuration, you should read the [CONTRIBUTING.md](./CONTRIBUTING.md)
-file.
+### Submit an issue / feature request
+
+If you have a SourceHut account, feel free to open an issue on one of the [trackers](https://sr.ht/~hadronized/kak-tree-sitter/trackers).
+
+If you do not own a SourceHut account, feel free to send an email in on the [discuss mailing list](https://lists.sr.ht/~hadronized/kak-tree-sitter-discuss).
+A contributor will create a ticket and send you a link you can subscribe your email to to follow progress.
+
+[Submit an issue through email](~hadronized/kak-tree-sitter-discuss@lists.sr.ht)
+
+### Contributing patches
+
+Have a look at [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Chat
 
