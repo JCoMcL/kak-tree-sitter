@@ -1,3 +1,4 @@
+pub mod discovery;
 pub mod highlighting;
 pub mod languages;
 pub mod nav;

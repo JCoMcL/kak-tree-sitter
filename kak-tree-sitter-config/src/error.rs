@@ -15,19 +15,4 @@ pub enum ConfigError {
 
   #[error("cannot parse configuration: {err}")]
   CannotParseConfig { err: String },
-
-  #[error("missing configuration option: {opt}")]
-  MissingOption { opt: String },
-
-  #[error("no configuration for grammar {name}")]
-  MissingGrammar { name: String },
-
-  #[error("no configuration for language {name}")]
-  MissingLang { name: String },
-}
-
-impl ConfigError {
-  pub fn missing_opt(opt: impl Into<String>) -> Self {
-    Self::MissingOption { opt: opt.into() }
-  }
 }

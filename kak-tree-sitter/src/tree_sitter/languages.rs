@@ -6,21 +6,21 @@ use std::{
   cell::{LazyCell, RefCell},
   collections::HashMap,
   ops::Deref,
+  path::PathBuf,
   rc::Rc,
 };
 
-use kak_tree_sitter_config::{
-  Config, GrammarConfig, GrammarsConfig, LanguageConfig, LanguagesConfig,
-};
+use kak_tree_sitter_config::Config;
 use tree_house::{highlighter::Highlight, text_object::TextObjectQuery};
 use tree_house_bindings::Query;
 
 use crate::{error::OhNo, kakoune::face::Face, tree_sitter::queries::Queries};
 
+use super::discovery::DiscoveredLang;
+
 pub struct Language {
   pub name: String,
   pub language: tree_house::Language,
-  // query to use for text objects, if supported by the language
   pub textobject_query: Option<TextObjectQuery>,
 
   lang_config: tree_house::LanguageConfig,
@@ -36,11 +36,7 @@ impl Language {
   }
 }
 
-/// A cached language, or blocklisted one.
-///
-/// A blocklisted language been tried to get loaded once, but we were not
-/// able to load, so we still inject the language to prevent trying again
-/// later.
+/// A cached language, or a blocklisted one that previously failed to load.
 pub enum CachedLanguage {
   Loaded(Box<Language>),
   LoadFailed,
@@ -53,60 +49,57 @@ impl From<Language> for CachedLanguage {
 }
 
 /// All loaded languages that can be used to parse buffers.
-///
-/// For a language to be tree-sitter compatible, it has to have a mapping in
-/// the underlying map. If not, the language might be loaded on-demand.
-///
-/// [`LazyCell`] is used to load the language only when first accessed.
 pub struct Languages {
-  /// Map a `kts_lang` to the tree-sitter [`Language`] and its queries.
   langs: HashMap<String, LazyLang>,
-
-  /// Reverse lookup mapping a numeric ID (Language) to its langage name.
   lang_ids: Vec<String>,
-
-  /// List of faces; used to resolve face names from their indices.
   faces: Rc<Vec<Face>>,
 }
 
 type LazyLang = LazyCell<CachedLanguage, Box<dyn FnOnce() -> CachedLanguage + 'static>>;
-pub type Grammar2Cache = Rc<RefCell<HashMap<String, tree_house_bindings::Grammar>>>;
+
+/// Cache of already-loaded grammars keyed by their .so path.
+///
+/// Multiple languages can share a grammar file (e.g. `json` and `jsonc`), so
+/// we deduplicate by path rather than by language name.
+pub type Grammar2Cache = Rc<RefCell<HashMap<PathBuf, tree_house_bindings::Grammar>>>;
 
 impl Languages {
-  pub fn new(config: &Config) -> Self {
+  pub fn new(config: &Config, discovered: HashMap<String, DiscoveredLang>) -> Self {
     let mut hl_names: Vec<_> = config.highlight.groups.iter().cloned().collect();
 
-    // NOTE: sorting in descending order allows to ensure that we will always match against the longest (more accurate)
-    // capture groups first; even though we have `punctuation`, parenthesis match `punctuation.bracket` and commas
-    // match `punctuation.delimiter`, so we want to resolve them as the more accurate capture group for better
-    // highlighting support.
+    // Sort descending so longer (more specific) capture group names match first.
     hl_names.sort_by(|a, b| b.cmp(a));
 
     let faces = Rc::new(hl_names.iter().map(Face::from_capture_group).collect());
-    let hl_names = Rc::new(hl_names.clone());
-
+    let hl_names = Rc::new(hl_names);
     let grammars2: Grammar2Cache = Rc::new(RefCell::new(HashMap::new()));
 
-    let lang_list: Vec<_> = config
-      .languages
-      .iter()
-      .zip(0..)
-      .map(|((lang_name, _), idx)| {
-        let config = config.clone();
+    // Sort language names for a stable idx → name mapping required by tree-house.
+    let mut lang_names: Vec<String> = discovered.keys().cloned().collect();
+    lang_names.sort();
+
+    let mut discovered = discovered;
+
+    let lang_list: Vec<_> = lang_names
+      .into_iter()
+      .zip(0u32..)
+      .map(|(lang_name, idx)| {
+        // Remove from the map so the closure captures owned data.
+        let disc = discovered.remove(&lang_name).expect("lang in sorted list must be in map");
+
         let hl_names = hl_names.clone();
-        let lang_name2 = lang_name.to_owned();
         let grammars2 = grammars2.clone();
+        let lang_name2 = lang_name.clone();
 
         let lazy = LazyLang::new(Box::new(move || {
           match Self::load_lang(
             &hl_names,
             &grammars2,
-            &config,
             &lang_name2,
+            &disc,
             tree_house::Language(idx),
           ) {
             Ok(lang) => CachedLanguage::Loaded(Box::new(lang)),
-
             Err(err) => {
               log::error!("cannot lazy load language '{lang_name2}'; will not try again: {err}");
               CachedLanguage::LoadFailed
@@ -114,9 +107,10 @@ impl Languages {
           }
         }));
 
-        (lang_name.to_owned(), lazy)
+        (lang_name, lazy)
       })
       .collect();
+
     let lang_ids = lang_list.iter().map(|(name, _)| name.clone()).collect();
     let langs = lang_list.into_iter().collect();
 
@@ -127,70 +121,62 @@ impl Languages {
     }
   }
 
-  fn load_grammar(
-    lang_name: &str,
-    grammar_config: &GrammarConfig,
-  ) -> Result<tree_house_bindings::Grammar, OhNo> {
-    let Some(path) = GrammarsConfig::get_grammar_path(grammar_config, lang_name) else {
-      return Err(OhNo::CannotLoadGrammar2 {
-        lang: lang_name.to_owned(),
-        err: format!("no grammar path for language {lang_name}"),
-      });
-    };
-    log::debug!("  grammar path: {}", path.display());
-
-    let name = lang_name.replace(['.', '-'], "_");
-    let grammar = unsafe {
-      tree_house_bindings::Grammar::new(&name, &path).map_err(|err| OhNo::CannotLoadGrammar2 {
-        lang: name,
-        // FIXME: remove the formatting and use .to_string() once <https://github.com/helix-editor/tree-house/pull/28> is merged
-        err: format!("{err:?}"),
-      })?
-    };
-
-    Ok(grammar)
-  }
-
-  fn load_queries(lang_name: &str, lang_config: &LanguageConfig) -> Result<Queries, OhNo> {
-    let Some(queries_dir) = LanguagesConfig::get_queries_dir(lang_config, lang_name) else {
-      return Err(OhNo::CannotLoadQueries {
-        lang: lang_name.to_owned(),
-        err: format!("no queries for language {lang_name}"),
-      });
-    };
-    log::debug!("  queries directory: {}", queries_dir.display());
-
-    Ok(Queries::load_from_dir(queries_dir))
-  }
-
-  /// Load a specific language.
+  /// Load a specific language from a [`DiscoveredLang`].
   fn load_lang(
     hl_names: &[String],
     grammars2: &Grammar2Cache,
-    config: &Config,
-    lang_name: impl AsRef<str>,
+    lang_name: &str,
+    disc: &DiscoveredLang,
     language: tree_house::Language,
   ) -> Result<Language, OhNo> {
-    let lang_name = lang_name.as_ref();
-    log::info!("loading configuration for {lang_name}");
+    log::info!("loading language '{lang_name}'");
 
-    let lang_config = config.languages.get_lang_config(lang_name)?;
-    let grammar_name = lang_config.grammar.as_deref().unwrap_or(lang_name);
-    let grammar_config = config.grammars.get_grammar_config(grammar_name)?;
+    // Derive the language part of the symbol name from the grammar filename.
+    // tree-house_bindings::Grammar::new(name, path) looks up `tree_sitter_{name}`, so we must
+    // pass only the language name portion (e.g. "odin"), not the full "tree_sitter_odin".
+    //
+    // Strip well-known prefixes in order of specificity:
+    //   libtree-sitter-rust.so → "rust"
+    //   tree-sitter-rust.so    → "rust"
+    //   libodin.so             → "odin"
+    let grammar_symbol = disc
+      .grammar_path
+      .file_stem()
+      .and_then(|s| s.to_str())
+      .map(|stem| {
+        let lang_part = stem
+          .strip_prefix("libtree-sitter-")
+          .or_else(|| stem.strip_prefix("tree-sitter-"))
+          .or_else(|| stem.strip_prefix("lib"))
+          .unwrap_or(stem);
+        lang_part.replace(['.', '-'], "_")
+      })
+      .unwrap_or_else(|| lang_name.replace(['.', '-'], "_"));
 
-    // load the grammar if not already cached
-    let grammar = if let Some(grammar) = grammars2.borrow().get(lang_name) {
-      log::debug!("grammar {lang_name} already loaded; using cached version");
-      tree_house_bindings::Grammar::clone(grammar)
-    } else {
-      let grammar = Self::load_grammar(grammar_name, grammar_config)?;
-      grammars2.borrow_mut().insert(lang_name.to_owned(), grammar);
-      grammar
+    // Load or reuse a cached grammar for this .so file.
+    let grammar = {
+      let cached = grammars2.borrow().get(&disc.grammar_path).copied();
+      if let Some(g) = cached {
+        log::debug!("  grammar {} already loaded; reusing", disc.grammar_path.display());
+        g
+      } else {
+        log::debug!("  grammar path: {}", disc.grammar_path.display());
+        let g = unsafe {
+          tree_house_bindings::Grammar::new(&grammar_symbol, &disc.grammar_path).map_err(
+            |err| OhNo::CannotLoadGrammar2 {
+              lang: lang_name.to_owned(),
+              err: format!("{err:?}"),
+            },
+          )?
+        };
+        grammars2.borrow_mut().insert(disc.grammar_path.clone(), g);
+        g
+      }
     };
 
-    let queries = Self::load_queries(lang_name, lang_config)?;
+    log::debug!("  highlights: {}", disc.highlights.display());
+    let queries = Queries::load_from_discovered(disc);
 
-    // tree-sitter-highlight configuration
     let textobject_query = queries
       .text_objects
       .as_deref()
@@ -199,7 +185,6 @@ impl Languages {
       })
       .unwrap_or_else(|| Ok(None))?;
 
-    // tree-house configuration
     let lang_config = tree_house::LanguageConfig::new(
       grammar,
       queries.highlights.as_deref().unwrap_or(""),
@@ -214,17 +199,14 @@ impl Languages {
         .map(|idx| Highlight::new(idx as _))
     });
 
-    let lang = Language {
+    Ok(Language {
       name: lang_name.to_owned(),
       language,
       textobject_query,
       lang_config,
-    };
-
-    Ok(lang)
+    })
   }
 
-  /// Return a [`Language`] if exists.
   pub fn get(&self, lang: impl AsRef<str>) -> Result<&Language, OhNo> {
     let lang_name = lang.as_ref();
     self

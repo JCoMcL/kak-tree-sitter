@@ -63,6 +63,14 @@ pub struct Cli {
   /// Specify a custom user-config.
   #[arg(long)]
   pub config: Option<PathBuf>,
+
+  /// List all discovered grammars and query files, then exit.
+  ///
+  /// Scans the configured search paths and prints each language found along
+  /// with the grammar .so path and the resolved query file paths. Useful for
+  /// diagnosing why a language is or isn't available.
+  #[arg(long)]
+  pub list_languages: bool,
 }
 
 impl Cli {

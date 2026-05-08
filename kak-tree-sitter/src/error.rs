@@ -63,9 +63,6 @@ pub enum OhNo {
   #[error("cannot load grammar for language {lang}: {err}")]
   CannotLoadGrammar2 { lang: String, err: String },
 
-  #[error("cannot load queries for language {lang}: {err}")]
-  CannotLoadQueries { lang: String, err: String },
-
   #[error("cannot parse queries: {err}")]
   LangConfig {
     #[from]

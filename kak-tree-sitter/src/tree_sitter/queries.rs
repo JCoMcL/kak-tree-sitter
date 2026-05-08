@@ -1,6 +1,8 @@
 //! Supported queries.
 
-use std::{fs, path::Path};
+use std::fs;
+
+use super::discovery::DiscoveredLang;
 
 #[derive(Debug)]
 pub struct Queries {
@@ -11,19 +13,21 @@ pub struct Queries {
 }
 
 impl Queries {
-  pub fn load_from_dir(dir: impl AsRef<Path>) -> Self {
-    let dir = dir.as_ref();
-
-    let highlights = fs::read_to_string(dir.join("highlights.scm")).ok();
-    let injections = fs::read_to_string(dir.join("injections.scm")).ok();
-    let locals = fs::read_to_string(dir.join("locals.scm")).ok();
-    let text_objects = fs::read_to_string(dir.join("textobjects.scm")).ok();
-
+  pub fn load_from_discovered(disc: &DiscoveredLang) -> Self {
     Queries {
-      highlights,
-      injections,
-      locals,
-      text_objects,
+      highlights: fs::read_to_string(&disc.highlights).ok(),
+      injections: disc
+        .injections
+        .as_ref()
+        .and_then(|p| fs::read_to_string(p).ok()),
+      locals: disc
+        .locals
+        .as_ref()
+        .and_then(|p| fs::read_to_string(p).ok()),
+      text_objects: disc
+        .textobjects
+        .as_ref()
+        .and_then(|p| fs::read_to_string(p).ok()),
     }
   }
 }

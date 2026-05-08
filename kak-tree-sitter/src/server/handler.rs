@@ -5,7 +5,7 @@ use std::{
   time::Instant,
 };
 
-use kak_tree_sitter_config::{Config, GrammarsConfig, LanguagesConfig};
+use kak_tree_sitter_config::{Config, LanguageConfig};
 
 use crate::{
   error::OhNo,
@@ -14,7 +14,7 @@ use crate::{
     request::Metadata,
     response::{EnabledLang, Payload, Response},
   },
-  tree_sitter::{languages::Languages, nav, state::Trees},
+  tree_sitter::{discovery, languages::Languages, nav, state::Trees},
 };
 
 use super::triple_buffer::TripleBufferReader;
@@ -109,6 +109,8 @@ impl Drop for CommandSender {
 /// parsing generates trees/highlighters that can be reused, for instance).
 pub struct Handler {
   config: Config,
+  /// Languages discovered from search paths at startup.
+  discovered_names: Vec<String>,
   trees: Trees,
   langs: Languages,
   with_highlighting: bool,
@@ -121,9 +123,16 @@ impl Handler {
 
     let config = config.clone();
     let join_handle = thread::spawn(move || {
-      let langs = Languages::new(&config);
+      let discovered = discovery::discover(&config);
+      let discovered_names = {
+        let mut names: Vec<String> = discovered.keys().cloned().collect();
+        names.sort();
+        names
+      };
+      let langs = Languages::new(&config, discovered);
       let handler = Self {
         config,
+        discovered_names,
         trees: Trees::default(),
         langs,
         with_highlighting,
@@ -215,47 +224,22 @@ impl Handler {
 
   /// Initiate languages on session init.
   pub fn handle_session_begin(&mut self, metadata: Metadata) -> Response {
+    let default_lang_config = LanguageConfig::default();
     let enabled_langs = self
-      .config
-      .languages
+      .discovered_names
       .iter()
-      .filter(|(name, lang)| {
-        let grammar_name = lang.grammar.as_deref().unwrap_or(name);
-
-        let grammar_path = self
+      .map(|name| {
+        let lc = self
           .config
-          .grammars
-          .get_grammar_config(grammar_name)
-          .ok()
-          .and_then(|gc| GrammarsConfig::get_grammar_path(gc, name));
-        let grammar_ok = grammar_path.as_ref().is_some_and(|p| p.exists());
-
-        let queries_dir = LanguagesConfig::get_queries_dir(lang, name);
-        let highlights_ok = queries_dir
-          .as_ref()
-          .is_some_and(|dir| dir.join("highlights.scm").exists());
-
-        let available = grammar_ok && highlights_ok;
-
-        if !grammar_ok {
-          log::debug!(
-            "grammar for '{name}' not found at {}; language will not be enabled",
-            grammar_path.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "<unknown>".to_owned())
-          );
-        } else if !highlights_ok {
-          log::debug!(
-            "highlights.scm for '{name}' not found at {}; language will not be enabled",
-            queries_dir.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "<unknown>".to_owned())
-          );
+          .languages
+          .get(name)
+          .unwrap_or(&default_lang_config);
+        EnabledLang {
+          name: name.to_owned(),
+          remove_default_highlighter: lc.remove_default_highlighter.into(),
+          filetype_hook: lc.filetype_hook.into(),
+          aliases: lc.aliases.clone(),
         }
-
-        available
-      })
-      .map(|(name, lang)| EnabledLang {
-        name: name.to_owned(),
-        remove_default_highlighter: lang.remove_default_highlighter.into(),
-        filetype_hook: lang.filetype_hook.into(),
-        aliases: lang.aliases.clone(),
       })
       .collect();
 

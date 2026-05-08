@@ -21,7 +21,7 @@ use server::{
   resources::{Paths, ServerResources},
 };
 
-use crate::{kakoune::rc, logging::KakouneLogger};
+use crate::{kakoune::rc, logging::KakouneLogger, tree_sitter::discovery};
 
 fn main() {
   if let Err(err) = start() {
@@ -52,6 +52,59 @@ fn print_rc(cli: &Cli, config: &Config) {
 
   println!("{}", rc::faces_kak());
   println!("{}", rc::cli_args_opt_kak(cli));
+}
+
+fn list_languages(config: &Config) -> Result<(), OhNo> {
+  println!("Grammar search paths:");
+  for path in &config.search_paths.grammars {
+    println!("  {path}");
+  }
+
+  println!("\nQuery search paths:");
+  for path in &config.search_paths.queries {
+    println!("  {path}");
+  }
+
+  let mut discovered: Vec<_> = discovery::discover(config).into_iter().collect();
+  discovered.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+  println!("\nDiscovered languages ({}):", discovered.len());
+  for (name, lang) in &discovered {
+    let none = "(none)";
+    println!("  {name}");
+    println!("    grammar:     {}", lang.grammar_path.display());
+    println!("    highlights:  {}", lang.highlights.display());
+    println!(
+      "    injections:  {}",
+      lang
+        .injections
+        .as_ref()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| none.to_owned())
+    );
+    println!(
+      "    locals:      {}",
+      lang
+        .locals
+        .as_ref()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| none.to_owned())
+    );
+    println!(
+      "    textobjects: {}",
+      lang
+        .textobjects
+        .as_ref()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| none.to_owned())
+    );
+  }
+
+  if discovered.is_empty() {
+    println!("  (none found — check that your search paths are correct)");
+  }
+
+  Ok(())
 }
 
 fn handle_cli_request(cli: &Cli, paths: &Paths, req: &str) -> Result<(), OhNo> {
@@ -114,6 +167,10 @@ fn start() -> Result<(), OhNo> {
   } else {
     Config::load_from_xdg()?
   };
+
+  if cli.list_languages {
+    return list_languages(&config);
+  }
 
   // inject rc if we start from Kakoune
   if cli.kakoune && cli.init.is_some() {
