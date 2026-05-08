@@ -11,7 +11,7 @@ use crate::ConfigError;
 #[serde(rename_all = "snake_case")]
 pub enum Source {
   Local { path: PathBuf },
-  Git { url: String, pin: String },
+  Git { url: String },
 }
 
 impl Source {
@@ -20,10 +20,9 @@ impl Source {
     Self::Local { path }
   }
 
-  pub fn git(url: impl Into<String>, pin: impl Into<String>) -> Self {
+  pub fn git(url: impl Into<String>) -> Self {
     let url = url.into();
-    let pin = pin.into();
-    Self::Git { url, pin }
+    Self::Git { url }
   }
 }
 
@@ -32,29 +31,13 @@ impl Source {
     match (self, user_source) {
       (self_, UserSource::Local { path }) => *self_ = Source::Local { path },
 
-      (
-        self_ @ Source::Local { .. },
-        UserSource::Git {
-          url: Some(url),
-          pin: Some(pin),
-        },
-      ) => {
-        *self_ = Source::Git { url, pin };
+      (self_ @ Source::Local { .. }, UserSource::Git { url: Some(url) }) => {
+        *self_ = Source::Git { url };
       }
 
-      (
-        Source::Git {
-          url: self_url,
-          pin: self_pin,
-        },
-        UserSource::Git { url, pin },
-      ) => {
+      (Source::Git { url: self_url }, UserSource::Git { url }) => {
         if let Some(url) = url {
           *self_url = url;
-        }
-
-        if let Some(pin) = pin {
-          *self_pin = pin;
         }
       }
 
@@ -70,10 +53,9 @@ impl TryFrom<UserSource> for Source {
     match source {
       UserSource::Local { path } => Ok(Self::Local { path }),
 
-      UserSource::Git { url, pin } => {
+      UserSource::Git { url } => {
         let url = url.ok_or_else(|| ConfigError::missing_opt("url"))?;
-        let pin = pin.ok_or_else(|| ConfigError::missing_opt("pin"))?;
-        Ok(Self::Git { url, pin })
+        Ok(Self::Git { url })
       }
     }
   }
@@ -88,7 +70,6 @@ pub enum UserSource {
 
   Git {
     url: Option<String>,
-    pin: Option<String>,
   },
 }
 
@@ -98,9 +79,8 @@ impl UserSource {
     Self::Local { path }
   }
 
-  pub fn git(url: impl Into<Option<String>>, pin: impl Into<Option<String>>) -> Self {
+  pub fn git(url: impl Into<Option<String>>) -> Self {
     let url = url.into();
-    let pin = pin.into();
-    Self::Git { url, pin }
+    Self::Git { url }
   }
 }

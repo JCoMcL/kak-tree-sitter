@@ -222,24 +222,30 @@ impl Handler {
       .filter(|(name, lang)| {
         let grammar_name = lang.grammar.as_deref().unwrap_or(name);
 
-        let grammar_ok = self
+        let grammar_path = self
           .config
           .grammars
           .get_grammar_config(grammar_name)
           .ok()
-          .and_then(|gc| GrammarsConfig::get_grammar_path(gc, name))
-          .is_some_and(|path| path.exists());
+          .and_then(|gc| GrammarsConfig::get_grammar_path(gc, name));
+        let grammar_ok = grammar_path.as_ref().is_some_and(|p| p.exists());
 
-        let highlights_ok = LanguagesConfig::get_queries_dir(lang, name)
+        let queries_dir = LanguagesConfig::get_queries_dir(lang, name);
+        let highlights_ok = queries_dir
+          .as_ref()
           .is_some_and(|dir| dir.join("highlights.scm").exists());
 
         let available = grammar_ok && highlights_ok;
 
         if !grammar_ok {
-          log::debug!("grammar for '{name}' not found on disk; language will not be enabled");
+          log::debug!(
+            "grammar for '{name}' not found at {}; language will not be enabled",
+            grammar_path.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "<unknown>".to_owned())
+          );
         } else if !highlights_ok {
           log::debug!(
-            "highlights.scm for '{name}' not found on disk; language will not be enabled"
+            "highlights.scm for '{name}' not found at {}; language will not be enabled",
+            queries_dir.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "<unknown>".to_owned())
           );
         }
 

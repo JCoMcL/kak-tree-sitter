@@ -164,9 +164,9 @@ impl GrammarsConfig {
     match config.source {
       Source::Local { ref path } => Some(path.clone()),
 
-      Source::Git { ref pin, .. } => {
+      Source::Git { .. } => {
         let lang = name.as_ref();
-        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}/{pin}.so")))
+        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")))
       }
     }
   }
@@ -214,15 +214,12 @@ impl LanguagesConfig {
     match lang_config.queries.source {
       Some(Source::Local { ref path }) => Some(path.clone()),
 
-      Some(Source::Git { ref pin, .. }) => {
+      Some(Source::Git { .. }) => {
         let lang = lang.as_ref();
-        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}/{pin}")))
+        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")))
       }
 
-      None => {
-        // FIXME: not sure this is wanted?
-        None
-      }
+      None => None,
     }
   }
 
@@ -701,7 +698,7 @@ mod tests {
           [(
             "rust".to_owned(),
             UserGrammarConfig {
-              source: Some(UserSource::git("git_source".to_owned(), "pin".to_owned())),
+              source: Some(UserSource::git("git_source".to_owned())),
               link_args: Some(vec!["link".to_owned(), "args".to_owned()]),
               ..Default::default()
             },
@@ -722,7 +719,7 @@ mod tests {
 
       assert_eq!(
         new_rust_grammar_config.source,
-        Source::git("git_source", "pin".to_owned())
+        Source::git("git_source")
       );
       assert_eq!(
         new_rust_grammar_config.link_args,
@@ -733,20 +730,22 @@ mod tests {
 
   #[test]
   fn user_config() -> Result<(), ConfigError> {
-    let toml = r#"[grammar.rust.source.git]
-      pin = "foo""#;
+    let toml = r#"[grammar.odin]
+      source.local.path = "/usr/lib64/libtree-sitter-odin.so""#;
     let config = toml::from_str::<UserConfig>(toml).unwrap();
     let source = config
       .grammar
       .as_ref()
       .unwrap()
-      .get("rust")
+      .get("odin")
       .unwrap()
       .source
       .as_ref()
       .unwrap();
 
-    assert!(matches!(source, UserSource::Git { pin, .. } if pin.as_deref() == Some("foo")));
+    assert!(
+      matches!(source, UserSource::Local { path } if path.as_os_str() == "/usr/lib64/libtree-sitter-odin.so")
+    );
 
     Ok(())
   }
