@@ -572,11 +572,12 @@ impl UserConfig {
   fn load(path: impl AsRef<Path>) -> Result<Self, ConfigError> {
     let path = path.as_ref();
 
-    log::debug!("loading configuration at {path}", path = path.display());
-
     if !matches!(path.try_exists(), Ok(true)) {
+      log::debug!("no config file at {path}", path = path.display());
       return Err(ConfigError::NoUserConfig);
     }
+
+    log::debug!("loading configuration from {path}", path = path.display());
 
     let content = fs::read_to_string(path).map_err(|err| ConfigError::CannotReadConfig {
       path: path.to_owned(),
