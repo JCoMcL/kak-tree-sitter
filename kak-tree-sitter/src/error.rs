@@ -115,9 +115,6 @@ pub enum OhNo {
   #[error("no such {pattern} text-object query")]
   UnknownTextObjectQuery { pattern: String },
 
-  #[error("face initialization error: {err}")]
-  FaceInit { err: fmt::Error },
-
   #[error("response serialization error: {err}")]
   ResponseSerialization { err: fmt::Error },
 }

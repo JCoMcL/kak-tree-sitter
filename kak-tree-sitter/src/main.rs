@@ -13,7 +13,6 @@ use clap::Parser;
 use cli::Cli;
 use error::OhNo;
 use kak_tree_sitter_config::Config;
-use kakoune::face::{compute_faces, faces_to_kak};
 use logging::Verbosity;
 use mio::Poll;
 use protocol::request::Request;
@@ -51,10 +50,8 @@ fn print_rc(cli: &Cli, config: &Config) {
     println!("{}", rc::text_objects_kak());
   }
 
+  println!("{}", rc::faces_kak());
   println!("{}", rc::cli_args_opt_kak(cli));
-
-  let faces = compute_faces(config);
-  println!("{}", faces_to_kak(&faces));
 }
 
 fn handle_cli_request(cli: &Cli, paths: &Paths, req: &str) -> Result<(), OhNo> {
