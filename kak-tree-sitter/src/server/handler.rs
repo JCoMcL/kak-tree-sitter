@@ -5,7 +5,7 @@ use std::{
   time::Instant,
 };
 
-use kak_tree_sitter_config::{Config, GrammarsConfig};
+use kak_tree_sitter_config::{Config, GrammarsConfig, LanguagesConfig};
 
 use crate::{
   error::OhNo,
@@ -221,7 +221,8 @@ impl Handler {
       .iter()
       .filter(|(name, lang)| {
         let grammar_name = lang.grammar.as_deref().unwrap_or(name);
-        let available = self
+
+        let grammar_ok = self
           .config
           .grammars
           .get_grammar_config(grammar_name)
@@ -229,8 +230,17 @@ impl Handler {
           .and_then(|gc| GrammarsConfig::get_grammar_path(gc, name))
           .is_some_and(|path| path.exists());
 
-        if !available {
+        let highlights_ok = LanguagesConfig::get_queries_dir(lang, name)
+          .is_some_and(|dir| dir.join("highlights.scm").exists());
+
+        let available = grammar_ok && highlights_ok;
+
+        if !grammar_ok {
           log::debug!("grammar for '{name}' not found on disk; language will not be enabled");
+        } else if !highlights_ok {
+          log::debug!(
+            "highlights.scm for '{name}' not found on disk; language will not be enabled"
+          );
         }
 
         available
