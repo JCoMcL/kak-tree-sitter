@@ -205,6 +205,29 @@ define-command -hidden tree-sitter-exec-if-changed -params 1 %{
 # not changed.
 define-command -hidden tree-sitter-exec-nop-0 nop
 
+# Report whether tree-sitter is active for the current buffer, and if so, which
+# language is being used.
+#
+# Three states are possible:
+#   - inactive: tree_sitter_lang is not set for this buffer
+#   - language set but grammar not loaded: the filetype was recognised but the
+#     server did not confirm a successful grammar load (e.g. grammar missing or
+#     failed to compile)
+#   - active: grammar loaded and highlights are being streamed
+define-command tree-sitter-status %{
+    evaluate-commands %sh{
+        lang=$kak_opt_tree_sitter_lang
+        fifo=$kak_opt_tree_sitter_buf_fifo_path
+        if [ -z "$lang" ]; then
+            printf 'echo -markup "{Information}tree-sitter: inactive"'
+        elif [ "$fifo" = "/dev/null" ]; then
+            printf 'echo -markup "{Warning}tree-sitter: lang=%s but grammar is not loaded"' "$lang"
+        else
+            printf 'echo -markup "{Information}tree-sitter: active (lang=%s)"' "$lang"
+        fi
+    }
+}
+
 # Remove every tree-sitter commands, hooks, options, etc.
 define-command tree-sitter-remove-all %{
   remove-hooks global tree-sitter
